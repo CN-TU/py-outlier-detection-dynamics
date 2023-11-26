@@ -1,5 +1,5 @@
 
-## What do anomaly scores actually mean? Key characteristics of algorithms' dynamics beyond accuracy
+## Key characteristics of algorithms’ dynamics: evaluation experiments
 FIV, Nov 2023
 
 Repository to replicate experiments and results in:
