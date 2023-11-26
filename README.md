@@ -55,11 +55,11 @@ or,
 
         python3 perini_tests.py dataS peri_stab_proba.csv peri_conf_proba.csv gauss 1
 
-Again, the **[dataS]** is the folder with datasets. It generates CSV. files with tables for the Stability (**peri_stab_minmax.csv** and **peri_stab_proba.csv**) and Confidence (**peri_conf_minmax.csv** and **peri_conf_proba.csv**) measurements.
+Again, the **[dataS]** is the folder with datasets. It generates CSV files with tables for the Stability (**peri_stab_minmax.csv** and **peri_stab_proba.csv**) and Confidence (**peri_conf_minmax.csv** and **peri_conf_proba.csv**) measurements.
 
 Note that Perini's Confidence is defined element-wise. To obtain a Confidence value per solution we use the 1% quantile.
 
-*(These processes can take considerable time on normal computers.)*
+*Warning!! Processes in Step 3 can take considerable time on normal computers.*
 
 #### - Sources and references 
 Original scripts are obtained from the repositories:
