@@ -59,6 +59,15 @@ Again, the **[dataS]** is the folder with datasets. It generates CSV. files with
 
 Note that Perini's Confidence is defined element-wise. To obtain a Confidence value per solution we use the 1% quantile.
 
+Original scripts are obtained from the repositories:
+
+- Confidence [1]: [https://github.com/Lorenzo-Perini/Confidence_AD](https://github.com/Lorenzo-Perini/Confidence_AD) 
+
+- Stability [2]: [https://github.com/Lorenzo-Perini/StabilityRankings_AD](https://github.com/Lorenzo-Perini/StabilityRankings_AD)
+
+[1] Perini, L., Vercruyssen, V., Davis, J.: *Quantifying the confidence of anomaly detectors in their example-wise predictions*. In: The European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases. Springer Verlag (2020).
+
+[2] Perini, L., Galvin, C., Vercruyssen, V.: *A Ranking Stability Measure for Quantifying the Robustness of Anomaly Detection Methods*. In: 2nd Workshop on Evaluation and Experimental Design in Data Mining and Machine Learning @ ECML/PKDD (2020).
 
 ### 4. Merging all dynamic indices
 
