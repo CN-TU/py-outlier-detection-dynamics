@@ -59,6 +59,9 @@ Again, the **[dataS]** is the folder with datasets. It generates CSV. files with
 
 Note that Perini's Confidence is defined element-wise. To obtain a Confidence value per solution we use the 1% quantile.
 
+*(These processes can take considerable time on normal computers.)*
+
+#### - Sources and references 
 Original scripts are obtained from the repositories:
 
 - Confidence [1]: [https://github.com/Lorenzo-Perini/Confidence_AD](https://github.com/Lorenzo-Perini/Confidence_AD) 
