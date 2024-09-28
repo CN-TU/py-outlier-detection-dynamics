@@ -12,7 +12,7 @@ Comparison of score dynamics and accuracy (S-curves, accuracy, discriminant powe
 
 ### 0. Seeting up the environment
 
-Experiments have been created and tested with **Python 3.9.6**.
+Experiments have been tested with **Python 3.9.6**.
 
 Create a new virtual environment and install dependencies with the following commands:
 
