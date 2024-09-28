@@ -4,8 +4,8 @@ import sys
 
 minmax_file = sys.argv[1]
 proba_file = sys.argv[2]
+plot_folder = sys.argv[3]
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc']
 selected_metrics = ['disc_power','rcvi','rcvo','coherence','bias','robustness','adj_ap','roc_auc','P-stability','P-confidence']
@@ -14,7 +14,6 @@ normalizations = ['linear','Gaussian']
 dfm = pd.read_csv(minmax_file)
 dfp = pd.read_csv(proba_file)
 
-#df.to_csv(out_file, index=False, float_format="%.3f")  
 
 dfm['norm'] = 'linear'
 dfp['norm'] = 'Gaussian'
@@ -43,8 +42,7 @@ for satype in satypes:
                 for metric in selected_metrics:              
                     auxc = auxb[auxb["metric"] == metric]
                     vals = auxc[alg].to_numpy()
-                    print(metric, len(vals))
-                    #print(auxc)
+                    #print(metric, len(vals))
                     try: 
                         row.append(vals[i])
                     except:
@@ -77,7 +75,7 @@ cmap = sns.diverging_palette(230, 20, as_cmap=True)
 sns.heatmap(dfcorr, mask=mask, annot=True, cmap=cmap, fmt=".2f", center=0, square=True, linewidths=.5)#, cbar_kws={"shrink": .5})
 plt.yticks(rotation=0) 
 plt.tight_layout()
-plt.savefig("corr_lin.pdf", rasterized=True)
+plt.savefig(plot_folder+"/corr_lin.pdf")
 plt.close()
 
 
@@ -88,5 +86,5 @@ cmap = sns.diverging_palette(230, 20, as_cmap=True)
 sns.heatmap(dfcorr, mask=mask, annot=True, cmap=cmap, fmt=".2f", center=0, square=True, linewidths=.5)#, cbar_kws={"shrink": .5})
 plt.yticks(rotation=0) 
 plt.tight_layout()
-plt.savefig("corr_gauss.pdf", rasterized=True)
+plt.savefig(plot_folder+"/corr_gauss.pdf")
 plt.close()

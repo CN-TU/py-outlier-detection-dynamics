@@ -3,7 +3,7 @@
 Comparison of outlierness scores 
 with multi-dimensional data with GT
  
-FIV, Jan 2023
+FIV, Jan 2024
 ==============================================
 """
 
@@ -24,6 +24,7 @@ import ntpath
 import matplotlib.pyplot as plt
 import matplotlib
 import csv
+from pathlib import Path
 
 from scipy import stats
 
@@ -67,33 +68,36 @@ def OI_variance(dX, dy, mode='mean'):
 def discriminant_power(dX):
     return np.log10(1+stats.kurtosis(dX, axis=0,bias=False))
 
+
 data_folder = sys.argv[1]
 scores_folder  = sys.argv[2]
-plots_folder  = sys.argv[3]
-dyn_file  = sys.argv[4]
-skip_header = int(sys.argv[5])
+norm  = sys.argv[3]
+skip_header = 1
 
 currentpath = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(currentpath, plots_folder) 
-if os.path.exists(path):
-    pass
-else: 
-    os.mkdir(path)    
-print("Plots saved in:", path)
+plots_folder = currentpath+"/plots/"+norm+"/S_curves"
+pffolder = currentpath+"/"+"/performances"
+Path(plots_folder).mkdir(parents=True, exist_ok=True)
+Path(pffolder).mkdir(parents=True, exist_ok=True)
+dyn_file = pffolder+"/dynamic_"+norm+".csv"
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
-#cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
-satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc']
+if "real_data" in data_folder:
+    satypes = ['cardio','shuttle','waveform','wilt']
+else:
+    satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc']
+
 performance = {}
 
 print("\nData folder:",data_folder)
 print("Scores folder:",scores_folder)
 
 sdo,abod,hbos,iforest,knn,lof,ocsvm,loop,glosh =  np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10)),np.zeros((1000,10))
-#models = [sdo,abod,hbos,iforest,knn,lof,ocsvm,loop,glosh]
 models = [sdo,abod,hbos,iforest,knn,lof,ocsvm,glosh]
+
+cmap = matplotlib.cm.get_cmap('copper')
+normplot = matplotlib.colors.Normalize(vmin=-1, vmax=10)
 
 for satype in satypes:
 
@@ -128,9 +132,7 @@ for satype in satypes:
         hop = len(dfsc_norm)/1000
         xc = np.arange(0, 1000*hop, hop).astype(int)[:1000]
 
-        cmap = matplotlib.cm.get_cmap('copper')
-        norm = matplotlib.colors.Normalize(vmin=-1, vmax=10)
-        color = cmap(norm(idd))
+        color = cmap(normplot(idd))
 
         for i,alg in enumerate(algs):         
             dfsc_norm.sort_values(by=[alg], inplace=True)
@@ -147,34 +149,33 @@ for satype in satypes:
             performance[(d_name, alg, 'bias')] = np.median(dX)
             performance[(d_name, alg, 'coherence')] = coherence(dX, dy)
 
-            #print(disc_power, var0, var1, bias, coh)
             models[i][:,idd]=dX[xc]
-            #dfsc_norm.hist(column=alg, ax=axH[i], bins=100)
-            #axH[i].plot(dXx, dXy, c=color)
                     
     ax2 = fig.add_axes([0.91, 0.12, 0.015, 0.75])
     bounds = np.arange(0,11)
-    cb = matplotlib.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm, spacing='proportional', ticks=bounds+0.5, boundaries=bounds, format='%1i')
+    cb = matplotlib.colorbar.ColorbarBase(ax2, cmap=cmap, norm=normplot, spacing='proportional', ticks=bounds+0.5, boundaries=bounds, format='%1i')
 
     for i,m in enumerate(models):
         m=m+1
-        performance[(satype, algs[i], 'robustness')] = 1 - np.sqrt(np.nanmean( np.nanstd(m,axis=1)*np.nanstd(m,axis=1)/np.nanmean(m,axis=1) ))
-    plotname = plots_folder + '/group_'+ satype + '.png' 
-    #plt.suptitle(satype)
-    plt.savefig(plotname)
+        performance[(satype, algs[i], 'robustness')] = 1 - np.sqrt(np.nanmean( np.nanstd(m,axis=1)*np.nanstd(m,axis=1)/(np.nanmax(m,axis=1)-np.nanmin(m,axis=1)) ))
+    plotname = plots_folder + '/group_'+ satype + '.pdf' 
+    plt.savefig(plotname, bbox_inches='tight')
     
-    #plt.show()
-    #plt.close()
 
 df = pd.DataFrame(columns=["metric","dataset","algorithm","val"])
 
-#w = csv.writer(open("dynamics.csv", "w"))
 for key, val in performance.items():
     d,a,m = key
-    #w.writerow([key, val])
     df.loc[len(df)] = [m,d,a,val]   
 
 df = df.pivot_table(index=['metric', 'dataset'], columns='algorithm', values='val', aggfunc='first').reset_index()
-    
-df.to_csv(dyn_file) 
-#df.to_latex("dynamics.tex", float_format="%.2f", index=False)
+
+if os.path.exists(dyn_file):
+    df.to_csv(dyn_file, mode='a', header=False)
+else:
+    df.to_csv(dyn_file)
+
+
+
+print("S-curve plots saved in:", plots_folder)
+print("Dynamic performances saved in:", dyn_file)

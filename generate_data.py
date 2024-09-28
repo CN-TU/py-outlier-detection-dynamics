@@ -4,7 +4,7 @@ Generation of data for studying outlier scoring
 algorithms when facing different types of data
 perturbation/variation
  
-FIV, Jan 2023
+FIV, Sep 2024
 ==============================================
 """
 
@@ -16,32 +16,23 @@ import numpy as np
 import pandas as pd
 import sys
 import os
+from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
 import scipy.spatial.distance as distance
 import mpl_toolkits.mplot3d.axes3d as axes3d
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
 
-
-## input arguments
-datafolder = sys.argv[1]
-plotfolder = sys.argv[2]
 currentpath = os.path.dirname(os.path.abspath(__file__))
-
-## creating folders if missing
-path = os.path.join(currentpath, datafolder) 
-if os.path.exists(path):
-    pass
-else: 
-    os.mkdir(path)    
-print("Datasets saved in:", path)
-
-path = os.path.join(currentpath, plotfolder) 
-if os.path.exists(path):
-    pass
-else: 
-    os.mkdir(path)    
-print("Example plots saved in:", path)
+datafolder = currentpath+"/"+"/data/synthetic_data"
+plotfolder = currentpath+"/"+"/plots/synthetic_data"
+Path(datafolder).mkdir(parents=True, exist_ok=True)
+Path(plotfolder).mkdir(parents=True, exist_ok=True)
+print("Datasets saved in:", datafolder)
+print("Example plots saved in:", plotfolder)
 
 
 def remove_closest(X,k,kcl):
@@ -252,18 +243,19 @@ for i,satype in enumerate(['sa_size','sa_size']+satypes):
         ax.set_ylabel("f1")
         ax.set_zlabel("f2")
 
-        ax.scatter(x, y, z, c=label, s=20, cmap=cmap, edgecolors='white')
+        ax.scatter(x, y, z, c=label, s=20, cmap=cmap, edgecolors='white', rasterized=True)
         ax = plt.gca()
         ax.set_facecolor('white')
         leg = plt.legend()
         ax.get_legend().set_visible(False)
     elif satype=='sa_mdens':
+        #df.drop(df[df['y'] < 0].index, inplace = True)
         palette = ['blue','royalblue', 'violet', 'orange', 'gold', 'lightcoral', 'y']
-        sns.scatterplot(data=df, x='f0', y='f1', hue='y', s=20, palette=palette)
+        sns.scatterplot(data=df, x='f0', y='f1', hue='y', s=20, palette=palette, rasterized=True)
         sns.set(rc={"figure.figsize":(6, 5)}) #width=3, #height=4
         sns.set_theme(style='white')
     else:
-        g = sns.scatterplot(data=df, x='f0', y='f1', hue='y', s=20, legend=False)
+        g = sns.scatterplot(data=df, x='f0', y='f1', hue='y', s=20, legend=False) 
         fmin = min([min(df['f0']),min(df['f1'])]) 
         fmax = max([max(df['f0']),max(df['f1'])]) 
         g.set_xlim([fmin, fmax])
@@ -273,7 +265,7 @@ for i,satype in enumerate(['sa_size','sa_size']+satypes):
 
     #plt.title(name)
     plt.tight_layout()
-    plt.savefig(plotfolder + '/' + name + '.png', dpi=200)
+    plt.savefig(plotfolder + '/' + name + '.pdf')
     plt.close()
 
 

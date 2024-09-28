@@ -1,6 +1,7 @@
 
-## Key characteristics of algorithms’ dynamics: evaluation experiments
-FIV, Nov 2023
+## What do anomaly scores actually mean? Key characteristics of algorithms' dynamics beyond accuracy
+
+FIV, Sep 2024, v.2
 
 Repository to replicate experiments and results in:
 
@@ -11,58 +12,89 @@ Comparison of score dynamics and accuracy (S-curves, accuracy, discriminant powe
 
 ### 1. Generate data
 
-Run:
+Synthetic data is generated with:
 
-        python3 generate_data.py dataS plots
+        python generate_data.py
 
-It creates the folder **[dataS]** and all datasets used for the experiments. It additionally creates the **[plots]** folder with some selected plots for the paper.
+This creates the folder **[data/synthetic_data]** with datasets used for the experiments. 
 
+It additionally creates the **[plots/synthetic_data]** folder with selected plots included in the paper.
 
-### 2. Run outlier detection algorithms on data
+Note that the folder **[data/real_data]** contains 4 real datasets downloaded from: [https://www.dbs.ifi.lmu.de/research/outlier-evaluation/DAMI/](https://www.dbs.ifi.lmu.de/research/outlier-evaluation/DAMI/). Specifically, they are:
 
-To run outlier detection algorithms on the generated data:
+- Cardiotocography (nodups, norm, 22%)
+- Shuttle (nodups, norm, v10)
+- Waveform (nodups, norm, v10)
+- Wilt (nodups, norm, 05%)
 
-        python outdet.py dataS scores_minmax perf_minmax.csv minmax 1
-
-The **[dataS]** folder must exist. If generated with *Step 1*, it contains datasets in .CSV format (with first row as header and the last column 'y' is the binary label: '1' for outliers). The script will generate the **[scores_minmax]** folder with a file per dataset containing the object-wise outlierness scores outputed by each tested algorithm. It also creates the file **perf_minmax.csv**, with a summary table with the overall performances (various metrics) of all algorithms for all datasets. The **minmax** argument selects the type of normalization applied on the outlierness scores. Argument **1** is just for skipping the first row of the datasets (i.e., the header).
-
-For *proba*-normalization, run:
-
-        python outdet.py dataS scores_proba perf_proba.csv gauss 1
-
-Similarly, it will generate scores (**[scores_proba]**) and summaries (**perf_proba.csv**), but for *probability* normalization of scores with the **gauss** argument.
+All datasets (both synthetic and real) are in .CSV format with first row as header and the last column 'y' is the binary label: '1' for outliers, '0' for inliers.
 
 
-### 3. Extract proposed metrics for the dynamics of outlierness scoring
+### 2. Extract outlier detection scores and accuracy performances
 
-To extract the metrics proposed in the paper, run:
+To extract outlier scores and accuracy performances, run:
 
-        python3 compare_scores_group.py dataS scores_minmax plots_minmax dyn_minmax.csv 1
+        python outdet.py data/synthetic_data/ minmax
 
-or:
+This scrip will take the datasets in **[data/synthetic_data]** and generate the **[scores/minmax]** folder. This folder will contain files with point-wise outlierness scores outputed by each algorithm under test. It also creates the file **performances/perf_minmax.csv** folder and file with a summary table with the overall performances (accuracy metrics). The **minmax** argument selects the type of normalization applied on the outlierness scores. 
 
-        python3 compare_scores_group.py dataS scores_proba plots_proba dyn_proba.csv 1
+For *proba*-normalization:
 
-Again, the **[dataS]** is the folder with datasets. Scores obtained from outlier detection algorithms must be passed as inputs (**[scores_minmax]** and **[scores_proba]** respectively). Note that these are folder names. The *compare_scores_group.py* script matches the right dataset and file-with-scores thanks to the naming used. The script generates a folder with plots of *S-curves* (**dyn_minmax.csv** and **dyn_proba.csv** respectively) and files with a summary table of "dynamic_metric-dataset-algorithms" (**[scores_minmax]** and **[scores_proba]** respectively).
+        python outdet.py data/synthetic_data/ proba
+
+It will generate scores (**[scores/proba]**) and summaries (**performances/perf_proba.csv**) for *probability* (Gaussian) normalization.
+
+Repeat the process for real datasets with:
+
+        python outdet.py data/real_data/ minmax
+
+        python outdet.py data/real_data/ proba
+
+*Warning!* When running scripts, information saved in performance files is appended (not rewritten). 
 
 
-### 3. Extract Perini's metrics (Stability & Confidence)
+### 3. Extract S-curves and dynamic measurements
 
-To extract Perini's metrics (Stability & Confidence), run:
+To extract S-curves and dynamic measurements:
 
-        python3 perini_tests.py dataS peri_stab_minmax.csv peri_conf_minmax.csv minmax 1
+        python compare_scores_group.py data/synthetic_data scores/minmax minmax
 
-or, 
+        python compare_scores_group.py data/synthetic_data scores/proba proba
 
-        python3 perini_tests.py dataS peri_stab_proba.csv peri_conf_proba.csv gauss 1
+        python compare_scores_group.py data/real_data scores/minmax minmax
 
-Again, the **[dataS]** is the folder with datasets. It generates CSV files with tables for the Stability (**peri_stab_minmax.csv** and **peri_stab_proba.csv**) and Confidence (**peri_conf_minmax.csv** and **peri_conf_proba.csv**) measurements.
+        python compare_scores_group.py data/real_data scores/minmax minmax
+
+This will generate plots with S-curves in folders: **[plots/minmax/S-curves]** and **[plots/proba/S-curves]**, also the files **performances/dynamic_minmax.csv** and **performances/dynamic_proba.csv** files. Note that the *compare_scores_group.py* script matches the right dataset and file-with-scores by matching file-names. 
+
+*Warning!* When running scripts, information saved in performance files is appended (not rewritten). 
+
+
+### 4. Extract Perini's metrics (Stability & Confidence)
+
+To extract Perini's metrics (Stability & Confidence):
+
+        python perini_tests.py data/synthetic_data minmax
+
+        python perini_tests.py data/synthetic_data proba
+
+        python perini_tests.py data/real_data minmax
+
+        python perini_tests.py data/real_data proba
+
+
+This will create the files: 
+**performances/peri_stab_minmax.csv** and **performances/peri_stab_proba.csv** for the Stability measurement, and
+**performances/peri_conf_minmax.csv** and **performances/peri_conf_proba.csv** for the Confidence measurement.
 
 Note that Perini's Confidence is defined element-wise. To obtain a Confidence value per solution we use the 1% quantile.
 
-*Warning!! Processes in Step 3 can take considerable time on normal computers.*
+*Warning!!* This step can take considerable time in a desktop computer (some days).
+
+*Warning!!* When running scripts, information saved in performance files is appended (not rewritten). 
 
 #### - Sources and references 
+
 Original scripts are obtained from the repositories:
 
 - Confidence [1]: [https://github.com/Lorenzo-Perini/Confidence_AD](https://github.com/Lorenzo-Perini/Confidence_AD) 
@@ -73,38 +105,34 @@ Original scripts are obtained from the repositories:
 
 > [2] Perini, L., Galvin, C., Vercruyssen, V.: *A Ranking Stability Measure for Quantifying the Robustness of Anomaly Detection Methods*. In: 2nd Workshop on Evaluation and Experimental Design in Data Mining and Machine Learning @ ECML/PKDD (2020).
 
-### 4. Merging all dynamic indices
+
+### 5. Merging all dynamic indices
 
 To merge all dynamic and accuracy indices in a single file (for accuracty we only keep ROC and AAP), run:
 
-        python3 merge_indices.py dyn_minmax.csv perf_minmax.csv peri_stab_minmax.csv peri_conf_minmax.csv all_minmax.csv
+        python merge_indices.py performances/dynamic_minmax.csv performances/perf_minmax.csv performances/peri_stab_minmax.csv performances/peri_conf_minmax.csv minmax
 
-or:
- 
-        python3 merge_indices.py dyn_proba.csv perf_proba.csv peri_stab_proba.csv peri_conf_proba.csv all_proba.csv
+        python merge_indices.py performances/dynamic_proba.csv performances/perf_proba.csv performances/peri_stab_proba.csv performances/peri_conf_proba.csv proba
 
-
-The only outputs generated here are **all_minmax.csv** (minmax case) and **all_proba.csv** (proba case). Other arguments refer to and are consistent with the files that we have defined in the previous points.
+Generated outputs are **performances/all_minmax.csv** and **performances/all_proba.csv**. 
 
 
-### 5. Scatter plots and tables comparing metrics
+### 6. Scatter plots and tables comparing metrics
 
-To generate the scatter plots in the paper that compare metrics and algorithms, run:
+To generate scatter plots comparing measurements and algorithms, run:
 
-        python3 scatterplots.py all_minmax.csv plots_minmax
+        python scatterplots.py performances/all_minmax.csv minmax
 
-or: 
-
-        python3 scatterplots.py all_proba.csv plots_proba
+        python scatterplots.py performances/all_proba.csv proba
 
 
-Additional plots will be generated in the **[plots_minmax]** (minmax case) and **[plots_proba]** (proba case).
+Additional plots will be generated in the **[plots/minmax/performance]** and **[plots/proba/performance]** folders.
 
-You can also generate a table in .TEX format (**perf_table.tex**) with an overall comparison by running:
+To create a table in .TEX format (**performances/perf_table.tex**) with an overall comparison, run:
 
-        python3 latex_table.py all_minmax.csv all_proba.csv perf_table.tex
+        python latex_table.py performances/all_minmax.csv performances/all_proba.csv performances/perf_table.tex
 
-Correlation plots are generated with:
+Correlation plots (**plots/corr_lin.pdf** and **plots/corr_gaus.pdf**) are generated with:
 
-        python3 metric_corr.py all_minmax.csv all_proba.csv
+        python metric_corr.py performances/all_minmax.csv performances/all_proba.csv plots/
 

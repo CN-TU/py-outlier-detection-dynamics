@@ -1,9 +1,9 @@
 """
 ==============================================
-Comparison of anomaly detection algorithms 
-with multi-dimensional data with GT
+Comparison of anomaly detection algorithms, 
+multi-dimensional data with GT
  
-FIV, Dec 2022
+FIV, Sep 2024
 ==============================================
 """
 
@@ -21,6 +21,7 @@ import glob
 import os
 import re
 import ntpath
+from pathlib import Path
 
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from sklearn.preprocessing import MinMaxScaler
@@ -31,15 +32,11 @@ from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.lof import LOF
-from pyod.models.loci import LOCI
 from pyod.models.ocsvm import OCSVM
-from pyod.models.cof import COF
-from pyod.models.sod import SOD
-from pysdo import SDO
-from PyNomaly import loop
+from sdoclust import SDO
 from hdbscan import HDBSCAN #GLOSH
 
-from indices import get_indices
+from utils.indices import get_indices
 
 np.random.seed(100)
 
@@ -68,11 +65,7 @@ def ocsvm(c):
     return model
 
 def sdo(c):
-    model = SDO(contamination=c, return_scores=True)
-    return model
-
-def LoOP(c):
-    model = loop
+    model = SDO(x=6)
     return model
 
 def glosh(c):
@@ -80,14 +73,14 @@ def glosh(c):
     return model
 
 def select_algorithm(argument,k):
-    switcher = {"ABOD":abod, "HBOS":hbos, "iForest":iforest, "K-NN":knn, "LOF":lof, "OCSVM":ocsvm, "SDO":sdo, "LOOP":LoOP, "GLOSH":glosh}
+    switcher = {"ABOD":abod, "HBOS":hbos, "iForest":iforest, "K-NN":knn, "LOF":lof, "OCSVM":ocsvm, "SDO":sdo, "GLOSH":glosh}
     model = switcher.get(argument, lambda: "Invalid algorithm")
     return model(k)
 
 def normalize(s, method):
     if method=='abodreg':
         s = -1 * np.log10(s/np.max(s))
-    if (method=='gauss' or method=='abodreg'):
+    if (method=='proba' or method=='abodreg'):
         mu = np.nanmean(s)
         sigma = np.nanstd(s)
         s = (s - mu) / (sigma * np.sqrt(2))
@@ -98,27 +91,25 @@ def normalize(s, method):
     return s
 
 inpath  = sys.argv[1]
-scfolder = sys.argv[2]
-perffile = sys.argv[3]
-norm = sys.argv[4]
-skip_header = int(sys.argv[5])
+norm = sys.argv[2]
+skip_header = 1
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
-#cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
+
+currentpath = os.path.dirname(os.path.abspath(__file__))
+scfolder = currentpath+"/scores/"+norm
+pffolder = currentpath+"/performances"
+Path(scfolder).mkdir(parents=True, exist_ok=True)
+Path(pffolder).mkdir(parents=True, exist_ok=True)
+perffile = pffolder+"/perf_"+norm+".csv"
+
+print("\nData folder:",inpath)
+print("Scores saved inr:",scfolder)
+print("Performances saved in:",perffile)
+
+
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 metrics = ["adj_Patn", "adj_maxf1", "adj_ap", "roc_auc", "AMI"]
-
-currentpath = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(currentpath, scfolder) 
-if os.path.exists(path):
-    pass
-else: 
-    os.mkdir(path)    
-
-print("\nData folder:",inpath)
-print("Scores folder:",scfolder)
-print("Performance file:",perffile)
 
 for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
     print("\nData file", filename)
@@ -149,12 +140,7 @@ for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
         print("Algorithm:", a_name)
 
         algorithm = select_algorithm(a_name,outliers_fraction)
-        if a_name == "LOOP":
-            scores = algorithm.LocalOutlierProbability(X, extent=2, n_neighbors=20, use_numba=True).fit().local_outlier_probabilities.astype(float)
-            scores = normalize(scores, norm)
-            threshold = np.quantile(scores, 1-outliers_fraction)
-            y = (scores > threshold)*1
-        elif a_name == "GLOSH":
+        if a_name == "GLOSH":
             algorithm.fit_predict(X)
             scores = algorithm.outlier_scores_
             scores = normalize(scores, norm)
@@ -170,7 +156,7 @@ for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
             else:
                 y = algorithm.predict(X)
                 scores = algorithm.decision_scores_
-                if (a_name == "ABOD" and norm == "gauss"):
+                if (a_name == "ABOD" and norm == "proba"):
                     scores = normalize(scores, "abodreg")
                 else:
                     scores = normalize(scores, norm)

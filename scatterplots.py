@@ -4,23 +4,20 @@ import sys
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+from pathlib import Path
 
 ind_file = sys.argv[1]
-plotfolder = sys.argv[2]
+norm = sys.argv[2]
 
 currentpath = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(currentpath, plotfolder) 
-if os.path.exists(path):
-    pass
-else: 
-    os.mkdir(path)    
-print("Plots saved in:", path)
+plotfolder = currentpath+"/plots/"+norm+"/indices"
+Path(plotfolder).mkdir(parents=True, exist_ok=True)
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
+print("Plots saved in:", plotfolder)
+
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
-satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc']
+satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc','cardio','shuttle','waveform','wilt']
 
-#metrics = ['disc_power','coherence','bias','sensitivity','var_inl','var_out','adj_Patn','adj_maxf1','adj_ap','roc_auc','AMI']
 metrics = ['disc_power','coherence','bias','robustness','rcvi','rcvo','adj_ap','roc_auc','P-stability','P-confidence']
 metSH = ['DP','ɣ','β','φ','RCVi','RCVo','AAP','ROC','T','C']
 maxy = [2.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1]
@@ -45,13 +42,19 @@ df_legend = pd.DataFrame(datalg)
 
 for j,satype in enumerate(satypes):
     fig, ax = plt.subplots(1,11, figsize=(23,4), gridspec_kw={'width_ratios': [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1]})
+    colorbar = True
     print("Plotting...", satype)
     for k,metric in enumerate(metrics):
         axs = ax[k]
         for i,alg in enumerate(algs):
             dfm = df[df["dataset"] == satype]
             dfms = dfm[dfm["metric"] == metric]
-            sns.scatterplot(data=dfms, x=i, y=alg, hue="idd", ax=axs, palette='copper', legend=False)
+            if len(dfms['idd'].unique())>1:
+                sns.scatterplot(data=dfms, x=i, y=alg, hue="idd", ax=axs, palette='copper', legend=False)
+            else:
+                sns.scatterplot(data=dfms, x=i, y=alg, color='black', ax=axs, legend=False)
+                colorbar = False
+
         axs.set_xticks(np.arange(len(algs)), algs, rotation='vertical')
         #if k==0:
             #axs.set_ylabel(satype)
@@ -72,7 +75,7 @@ for j,satype in enumerate(satypes):
     ax[10].set_ylabel("experimental param. 'i'")
     #ax[10].yaxis.tick_right()
     ax[10].set_yticks(np.arange(10))
-    nameplot = plotfolder + '/scatter_' + satype + '.png'   
+    nameplot = plotfolder + '/scatter_' + satype + '.pdf'   
     plt.tight_layout()
     plt.savefig(nameplot)
     plt.close()

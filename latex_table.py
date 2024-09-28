@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 import sys
+from pathlib import Path
 
 minmax_file = sys.argv[1]
 proba_file = sys.argv[2]
 latexfile = sys.argv[3]
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 satypes = ['sa_dim', 'sa_size', 'sa_outr', 'sa_ddif', 'sa_mdens', 'sa_clusts','sa_loc']
 selected_metrics = ['disc_power','rcvi','rcvo','coherence','bias','robustness','adj_ap','roc_auc','P-stability','P-confidence']
@@ -14,8 +14,6 @@ normalizations = ['linear','Gaussian']
 
 dfm = pd.read_csv(minmax_file)
 dfp = pd.read_csv(proba_file)
-
-#df.to_csv(out_file, index=False, float_format="%.3f")  
 
 dfm['norm'] = 'linear'
 dfp['norm'] = 'Gaussian'
@@ -57,3 +55,5 @@ for satype in satypes:
             df_out.loc[len(df_out)] =  max_row
 
 df_out.to_latex(latexfile, index=False, float_format="%.2f")  
+
+

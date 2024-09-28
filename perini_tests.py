@@ -3,7 +3,7 @@
 Extraction of Perini's Stability and Confidence 
 metrics from datasets and outlierness scores
  
-FIV, Dec 2022
+FIV, Sep 2024
 ==============================================
 """
 
@@ -21,6 +21,7 @@ import glob
 import os
 import re
 import ntpath
+from pathlib import Path
 
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from sklearn.preprocessing import MinMaxScaler
@@ -31,15 +32,11 @@ from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.lof import LOF
-from pyod.models.loci import LOCI
 from pyod.models.ocsvm import OCSVM
-from pyod.models.cof import COF
-from pyod.models.sod import SOD
-from pysdo import SDO
-from indices import get_indices
-from stability import *
-from ExCeeD import *
-from PyNomaly import loop
+from sdoclust import SDO
+from utils.indices import get_indices
+from utils.stability import *
+from utils.ExCeeD import *
 from hdbscan import HDBSCAN, approximate_predict_scores #GLOSH
 
 np.random.seed(100)
@@ -59,31 +56,11 @@ class cGLOSH():
     def get_model_scores(self):
         return self.model.outlier_scores_
 
-class cLOOP():
-    def __init__(self):
-        self.model = loop
-
-    def fit(self, X):
-        self.model = loop.LocalOutlierProbability(X, extent=2, n_neighbors=20, use_numba=True).fit()
-        return self
-
-    def predict(self, X):
-        y = []
-        for i in range(len(X)):
-            e = X[i,:]
-            y.append(self.model.stream(e))
-        y = np.array(y)
-        return y
-
-    def get_model_scores(self):
-        return self.model.local_outlier_probabilities.astype(float)
-
 def abod(c):
     model = ABOD(contamination=c, n_neighbors=20, method='fast')
     return model
  
 def hbos(c):
-    #model = HBOS(contamination=c,n_bins='auto')
     model = HBOS(contamination=c,n_bins=20)
     return model
 
@@ -104,11 +81,7 @@ def ocsvm(c):
     return model
 
 def sdo(c):
-    model = SDO(contamination=c, return_scores=True)
-    return model
-
-def LoOP(c):
-    model = cLOOP()
+    model = SDO(x=6)
     return model
 
 def glosh(c):
@@ -116,7 +89,7 @@ def glosh(c):
     return model
 
 def select_algorithm(argument,k):
-    switcher = {"ABOD":abod, "HBOS":hbos, "iForest":iforest, "K-NN":knn, "LOF":lof, "OCSVM":ocsvm, "SDO":sdo, "LOOP":LoOP, "GLOSH":glosh}
+    switcher = {"ABOD":abod, "HBOS":hbos, "iForest":iforest, "K-NN":knn, "LOF":lof, "OCSVM":ocsvm, "SDO":sdo, "GLOSH":glosh}
     model = switcher.get(argument, lambda: "Invalid algorithm")
     return model(k)
 
@@ -140,19 +113,19 @@ def normalize(tr, ts, method, a):
     return tr, ts
 
 inpath  = sys.argv[1]
-stabfile = sys.argv[2]
-conffile = sys.argv[3]
-norm = sys.argv[4]
-skip_header = int(sys.argv[5])
+norm = sys.argv[2]
+skip_header = 1
 
-#algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
-#cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","LOOP","GLOSH"]
+currentpath = os.path.dirname(os.path.abspath(__file__))
+pffolder = currentpath+"/performances"
+Path(pffolder).mkdir(parents=True, exist_ok=True)
+stabfile = pffolder+"/peri_stab_"+norm+".csv"
+conffile = pffolder+"/peri_conf_"+norm+".csv"
+
 algs = ["ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 cols = ["dataset","ABOD", "HBOS", "iForest", "K-NN", "LOF", "OCSVM","SDO","GLOSH"]
 
 print("\nData folder:",inpath)
-print("Stability file:",stabfile)
-print("Confidence file:",conffile)
 
 df_stab = pd.DataFrame(columns=cols)
 df_conf = pd.DataFrame(columns=cols)
@@ -190,7 +163,7 @@ for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
 
         algorithm = select_algorithm(a_name,outliers_fraction)
 
-        if (a_name == "LOOP" or a_name == "GLOSH"):
+        if a_name == "GLOSH":
             algorithm = algorithm.fit(X_train)
             train_scores = algorithm.get_model_scores()
             test_scores = algorithm.predict(X_test)
@@ -213,7 +186,7 @@ for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
 
         train_scores, test_scores = normalize(train_scores, test_scores, norm, a_name)
 
-        stab_unif, inst_unif = stability_measure(X_train, X_test, algorithm, outliers_fraction, test_scores, unif = True, iterations=100, subset_low=0.2, subset_high=0.6)
+        stab_unif, inst_unif = stability_measure(X_train, X_test, algorithm, outliers_fraction, test_scores, unif = True, iterations=100, subset_low=0.3, subset_high=0.6)
         print("Stability:", stab_unif, inst_unif)
         confidence = ExCeeD(train_scores, test_scores, prediction, outliers_fraction)
         num_outliers, m = sum(ygt), len(ygt)
@@ -231,10 +204,17 @@ for idf, filename in enumerate(glob.glob(os.path.join(inpath, '*'))):
     print(df_stab)
     print(df_conf)
 
+if os.path.exists(stabfile):
+    df_stab.to_csv(stabfile, mode='a', header=False)
+else:
     df_stab.to_csv(stabfile)
-    print('Stability scores saved in:',stabfile)
+print('Stability scores saved in:',stabfile)
+
+if os.path.exists(conffile):
+    df_conf.to_csv(conffile, mode='a', header=False)
+else:
     df_conf.to_csv(conffile)
-    print('Confidence scores saved in:',conffile)
+print('Confidence scores saved in:',conffile)
 
 
 
