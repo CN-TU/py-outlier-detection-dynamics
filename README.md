@@ -76,7 +76,7 @@ To extract S-curves and dynamic measurements:
 
         python compare_scores_group.py data/real_data scores/minmax minmax
 
-        python compare_scores_group.py data/real_data scores/minmax minmax
+        python compare_scores_group.py data/real_data scores/proba minmax
 
 This will generate plots with S-curves in folders: **[plots/minmax/S-curves]** and **[plots/proba/S-curves]**, also the files **performances/dynamic_minmax.csv** and **performances/dynamic_proba.csv** files. Note that the *compare_scores_group.py* script matches the right dataset and file-with-scores by matching file-names. 
 
